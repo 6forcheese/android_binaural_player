@@ -6,11 +6,6 @@
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation; version 2 of the License.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
- * Public License for more details.
  */
 
 package org.cigaes.binaural_player;
@@ -40,135 +35,139 @@ public class Binaural_player extends Service implements Handler.Callback
     String playing_sequence;
     int playing_total_time;
 
-    /*
-     * Client interraction
-     */
-
     final Messenger incoming_messenger = new Messenger(new Handler(this));
     final ArrayList<Messenger> clients = new ArrayList<Messenger>();
 
     @Override
     public IBinder onBind(Intent intent)
     {
-	return incoming_messenger.getBinder();
+        return incoming_messenger.getBinder();
     }
 
     @Override
     public boolean onUnbind(Intent intent)
     {
-	exit_if_finished();
-	return true;
+        exit_if_finished();
+        return true;
     }
 
     public boolean handleMessage(Message msg)
     {
-	Bundle b;
-	switch(msg.what) {
-	    case 'I':
-		clients.add(msg.replyTo);
-		client_send_status(msg.replyTo);
-		client_send_time(msg.replyTo);
-		client_send_pause(msg.replyTo);
-		return true;
-	    case 'J':
-		clients.remove(msg.replyTo);
-		exit_if_finished();
-		return true;
-	    case 'R':
-		b = msg.getData();
-		decoder_start(b.getString("seq"));
-		return true;
-	    case 'C':
-		handle_client_control((char)msg.arg1);
-		return true;
-	    case 't':
-		playing_paused = false;
-		if(msg.arg1 >= 0) {
-		    playing_time = msg.arg1;
-		    client_send_time(null);
-		} else {
-		    decoder_reap();
-		}
-		return true;
-	    case 'e':
-		b = msg.getData();
-		client_send_error(null, b.getString("message"));
-		decoder_reap();
-		return true;
-	    default:
-		warn("Unknown message: %s", msg);
-		return false;
-	}
+        Bundle b;
+
+        switch(msg.what) {
+            case 'I':
+                clients.add(msg.replyTo);
+                client_send_status(msg.replyTo);
+                client_send_time(msg.replyTo);
+                client_send_pause(msg.replyTo);
+                return true;
+
+            case 'J':
+                clients.remove(msg.replyTo);
+                exit_if_finished();
+                return true;
+
+            case 'R':
+                b = msg.getData();
+                decoder_start(b.getString("seq"));
+                return true;
+
+            case 'C':
+                handle_client_control((char)msg.arg1);
+                return true;
+
+            case 't':
+                playing_paused = false;
+                if(msg.arg1 >= 0) {
+                    playing_time = msg.arg1;
+                    client_send_time(null);
+                } else {
+                    decoder_reap();
+                }
+                return true;
+
+            case 'e':
+                b = msg.getData();
+                client_send_error(null, b.getString("message"));
+                decoder_reap();
+                return true;
+
+            default:
+                warn("Unknown message: %s", msg);
+                return false;
+        }
     }
 
     void handle_client_control(char cmd)
     {
-	switch(cmd) {
-	    case 'S':
-		decoder_stop();
-		break;
-	    case 'P':
-		decoder_pause(true);
-		break;
-	    case 'R':
-		decoder_pause(false);
-		break;
-	    default:
-		warn("Unknown control: %c", cmd);
-	}
+        switch(cmd) {
+            case 'S':
+                decoder_stop();
+                break;
+
+            case 'P':
+                decoder_pause(true);
+                break;
+
+            case 'R':
+                decoder_pause(false);
+                break;
+
+            default:
+                warn("Unknown control: %c", cmd);
+        }
     }
 
     void client_send_status(Messenger client)
     {
-	Bundle b = new Bundle(2);
-	b.putString("seq", playing_sequence);
-	b.putInt("duration", playing_total_time);
-	client_send_message(client, 'S', 0, b);
+        Bundle b = new Bundle(2);
+        b.putString("seq", playing_sequence);
+        b.putInt("duration", playing_total_time);
+        client_send_message(client, 'S', 0, b);
     }
 
     void client_send_time(Messenger client)
     {
-	client_send_message(client, 'T', playing_time, null);
+        client_send_message(client, 'T', playing_time, null);
     }
 
     void client_send_pause(Messenger client)
     {
-	client_send_message(client, 'P', playing_paused ? 1 : 0, null);
+        client_send_message(client, 'P', playing_paused ? 1 : 0, null);
     }
 
     void client_send_error(Messenger client, String error)
     {
-	Bundle b = new Bundle(1);
-	b.putString("message", error);
-	client_send_message(client, 'E', 0, b);
+        Bundle b = new Bundle(1);
+        b.putString("message", error);
+        client_send_message(client, 'E', 0, b);
     }
 
     void client_send_message(Messenger client, char code, int arg1, Bundle b)
     {
-	Message msg = Message.obtain(null, code);
-	msg.arg1 = arg1;
-	msg.setData(b);
-	client_send_message(client, msg);
+        Message msg = Message.obtain(null, code);
+        msg.arg1 = arg1;
+        msg.setData(b);
+        client_send_message(client, msg);
     }
 
     void client_send_message(Messenger client, Message msg)
     {
-	if(client == null) {
-	    for(Messenger c : clients)
-		client_send_message(c, msg);
-	    return;
-	}
-	try {
-	    client.send(msg);
-	} catch(RemoteException e) {
-	    warn("client_send: exception: %s", e);
-	    clients.remove(client);
-	}
-    }
+        if(client == null) {
+            for(Messenger c : clients) {
+                client_send_message(c, msg);
+            }
+            return;
+        }
 
-    /*
-     * Decoder thread interaction
-     */
+        try {
+            client.send(msg);
+        } catch(RemoteException e) {
+            warn("client_send: exception: %s", e);
+            clients.remove(client);
+        }
+    }
 
     Binaural_decoder decoder;
     Thread decoder_thread;
@@ -176,147 +175,180 @@ public class Binaural_player extends Service implements Handler.Callback
 
     void decoder_start(String seq)
     {
-	if(decoder != null) {
-	    decoder_stop();
-	    playing_next = seq;
-	    return;
-	}
-	playing_sequence = seq;
-	playing_total_time = parse_total_time(seq);
-	playing_time = 0;
-	playing_paused = false;
-	decoder = new Binaural_decoder(incoming_messenger, seq);
-	decoder_thread = new Thread(decoder);
-	decoder_thread.start();
-	client_send_status(null);
-	set_foreground();
+        if(decoder != null) {
+            decoder_stop();
+            playing_next = seq;
+            return;
+        }
+
+        playing_sequence = seq;
+        playing_total_time = parse_total_time(seq);
+        playing_time = 0;
+        playing_paused = false;
+
+        decoder = new Binaural_decoder(incoming_messenger, seq);
+        decoder_thread = new Thread(decoder);
+        decoder_thread.start();
+
+        client_send_status(null);
+        set_foreground();
     }
 
     void decoder_stop()
     {
-	if(decoder == null)
-	    return;
-	decoder.set_command('S');
+        if(decoder == null) {
+            return;
+        }
+
+        decoder.set_command('S');
     }
 
     void decoder_pause(boolean pause)
     {
-	if(decoder == null)
-	    return;
-	decoder.set_command(pause ? 'P' : 'R');
-	playing_paused = pause;
-	client_send_pause(null);
+        if(decoder == null) {
+            return;
+        }
+
+        decoder.set_command(pause ? 'P' : 'R');
+        playing_paused = pause;
+        client_send_pause(null);
     }
 
     void decoder_reap()
     {
-	playing_sequence = null;
-	client_send_status(null);
-	if(decoder == null)
-	    return;
-	stopForeground(true);
-	while(true) {
-	    warn("reaping decoder");
-	    try {
-		decoder_thread.join();
-		warn("decoder reaped");
-		break;
-	    } catch(InterruptedException e) {
-	    }
-	}
-	decoder = null;
-	decoder_thread = null;
-	if(playing_next != null) {
-	    String s = playing_next;
-	    playing_next = null;
-	    decoder_start(s);
-	} else {
-	    exit_if_finished();
-	}
-    }
+        playing_sequence = null;
+        client_send_status(null);
 
-    /*
-     * System interaction
-     */
+        if(decoder == null) {
+            return;
+        }
+
+        stopForeground(true);
+
+        while(true) {
+            warn("reaping decoder");
+            try {
+                decoder_thread.join();
+                warn("decoder reaped");
+                break;
+            } catch(InterruptedException e) {
+            }
+        }
+
+        decoder = null;
+        decoder_thread = null;
+
+        if(playing_next != null) {
+            String s = playing_next;
+            playing_next = null;
+            decoder_start(s);
+        } else {
+            exit_if_finished();
+        }
+    }
 
     public void exit_if_finished()
     {
-	if(clients.size() == 0 && decoder == null) {
-	    stopSelf();
-	    System.exit(0);
-	}
+        if(clients.size() == 0 && decoder == null) {
+            stopSelf();
+            System.exit(0);
+        }
     }
 
     void set_foreground()
-    
-       String channelId = "binaural_player";
-    
-       if (Build.VERSION.SDK_INT >= 26) {
-           NotificationChannel channel = new NotificationChannel(
-               channelId,
-               "Binaural player",
-               NotificationManager.IMPORTANCE_LOW
-           );
-    
-           NotificationManager manager =
-               (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-    
-           if (manager != null) {
-               manager.createNotificationChannel(channel);
-           }
+    {
+        String channelId = "binaural_player";
+
+        if(Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel =
+                new NotificationChannel(
+                    channelId,
+                    "Binaural player",
+                    NotificationManager.IMPORTANCE_LOW
+                );
+
+            NotificationManager manager =
+                (NotificationManager)getSystemService(
+                    NOTIFICATION_SERVICE
+                );
+
+            if(manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+
+        Intent intent =
+            new Intent(
+                this,
+                Binaural_player_GUI.class
+            );
+
+        PendingIntent pintent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            );
+
+        Notification.Builder builder;
+
+        if(Build.VERSION.SDK_INT >= 26) {
+            builder =
+                new Notification.Builder(
+                    this,
+                    channelId
+                );
+        } else {
+            builder =
+                new Notification.Builder(this);
+        }
+
+        Notification notification =
+            builder
+                .setContentTitle("Binaural player")
+                .setContentText("Playing")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setContentIntent(pintent)
+                .build();
+
+        startForeground(1, notification);
     }
 
-    Intent intent = new Intent(this, Binaural_player_GUI.class);
-
-    PendingIntent pintent = PendingIntent.getActivity(
-        this,
-        0,
-        intent,
-        PendingIntent.FLAG_IMMUTABLE
-    );
-
-    Notification.Builder builder =
-        Build.VERSION.SDK_INT >= 26
-            ? new Notification.Builder(this, channelId)
-            : new Notification.Builder(this);
-
-    Notification notification = builder
-        .setContentTitle("Binaural player")
-        .setContentText("Playing")
-        .setSmallIcon(android.R.drawable.ic_media_play)
-        .setContentIntent(pintent)
-        .build();
-
-    startForeground(1, notification);
-	}
-
-    /*
-     * Utility functions
-     */
-
     final Matcher sequence_time_parser =
-	Pattern.compile("\\s*\\+(\\d+(?::\\d+)*)\\s+.*").matcher("");
+        Pattern.compile("\\s*\\+(\\d+(?::\\d+)*)\\s+.*").matcher("");
 
     int parse_total_time(String seq)
     {
-	String[] lines = seq.split("\n");
-	for(int i = lines.length - 1; i >= 0; i--) {
-	    if(lines[i].length() > 0) {
-		sequence_time_parser.reset(lines[i]);
-		if(sequence_time_parser.matches()) {
-		    String[] c = sequence_time_parser.group(1).split(":");
-		    int r = 0;
-		    for(int j = 0; j < c.length; j++)
-			r = r * 60 + Integer.parseInt(c[j]);
-		    return r * 1000;
-		}
-		break;
-	    }
-	}
-	return -1;
+        String[] lines = seq.split("\n");
+
+        for(int i = lines.length - 1; i >= 0; i--) {
+            if(lines[i].length() > 0) {
+                sequence_time_parser.reset(lines[i]);
+
+                if(sequence_time_parser.matches()) {
+                    String[] c = sequence_time_parser.group(1).split(":");
+                    int r = 0;
+
+                    for(int j = 0; j < c.length; j++) {
+                        r = r * 60 + Integer.parseInt(c[j]);
+                    }
+
+                    return r * 1000;
+                }
+
+                break;
+            }
+        }
+
+        return -1;
     }
 
-    static void warn(String fmt, Object... args) {
-	android.util.Log.v("Binaural_player", String.format(fmt, args));
+    static void warn(String fmt, Object... args)
+    {
+        android.util.Log.v(
+            "Binaural_player",
+            String.format(fmt, args)
+        );
     }
 }

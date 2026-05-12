@@ -20,6 +20,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -29,6 +31,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.os.Build;
 
 public class Binaural_player extends Service implements Handler.Callback
 {
@@ -245,24 +248,46 @@ public class Binaural_player extends Service implements Handler.Callback
     }
 
     void set_foreground()
-    {
-		Intent intent = new Intent(this, Binaural_player_GUI.class);
-		
-		PendingIntent pintent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification notification = new Notification.Builder(this)
-            .setContentTitle("Binaural player")
-            .setContentText("Playing")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentIntent(pintent)
-            .build();
     
-        startForeground(1, notification);
+       String channelId = "binaural_player";
+    
+       if (Build.VERSION.SDK_INT >= 26) {
+           NotificationChannel channel = new NotificationChannel(
+               channelId,
+               "Binaural player",
+               NotificationManager.IMPORTANCE_LOW
+           );
+    
+           NotificationManager manager =
+               (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+    
+           if (manager != null) {
+               manager.createNotificationChannel(channel);
+           }
+    }
+
+    Intent intent = new Intent(this, Binaural_player_GUI.class);
+
+    PendingIntent pintent = PendingIntent.getActivity(
+        this,
+        0,
+        intent,
+        PendingIntent.FLAG_IMMUTABLE
+    );
+
+    Notification.Builder builder =
+        Build.VERSION.SDK_INT >= 26
+            ? new Notification.Builder(this, channelId)
+            : new Notification.Builder(this);
+
+    Notification notification = builder
+        .setContentTitle("Binaural player")
+        .setContentText("Playing")
+        .setSmallIcon(android.R.drawable.ic_media_play)
+        .setContentIntent(pintent)
+        .build();
+
+    startForeground(1, notification);
 	}
 
     /*

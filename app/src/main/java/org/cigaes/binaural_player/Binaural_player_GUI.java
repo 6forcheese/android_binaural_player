@@ -231,7 +231,7 @@ public class Binaural_player_GUI extends TabActivity
 
 	browser = new Browser(this);
 	browser.set_file_click_listener(this);
-	browser.set_glob(".*\\.sbg.*");
+	//browser.set_glob(".*\\.sbg.*");
 
 	shell_script_view = new LinearLayout(this);
 	shell_script_view.setOrientation(LinearLayout.VERTICAL);

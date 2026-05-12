@@ -1724,7 +1724,6 @@ sbagen_get_error(void)
 #include <assert.h>
 #include <jni.h>
 #include <android/log.h>
-#include "tmp/sbagen.h"
 
 static void
 die(JNIEnv *env, char c)

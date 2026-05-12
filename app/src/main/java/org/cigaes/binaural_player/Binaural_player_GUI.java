@@ -60,7 +60,7 @@ public class Binaural_player_GUI extends TabActivity
     public void onCreate(Bundle state)
     {
 	super.onCreate(state);
-	global_settings = getPreferences(Context.MODE_WORLD_READABLE);
+	global_settings = getPreferences(Context.MODE_PRIVATE);
 	user_interface_create();
 	player_service_connect();
 	String dir = state == null ? null : state.getString("dir");
@@ -93,13 +93,10 @@ public class Binaural_player_GUI extends TabActivity
 
     void player_service_connect()
     {
-	player_service_intent = new Intent();
-	player_service_intent.addCategory(Intent.CATEGORY_DEFAULT);
-	player_service_intent.setAction(Intent.ACTION_RUN);
-	player_service_intent.setType("application/x-sbagen-sequence");
-	startService(player_service_intent);
-	player_service_connecting = true;
-	bindService(player_service_intent, this, Context.BIND_AUTO_CREATE);
+    player_service_intent = new Intent(this, Binaural_player.class);
+    startService(player_service_intent);
+    player_service_connecting = true;
+    bindService(player_service_intent, this, Context.BIND_AUTO_CREATE);
     }
 
     void player_service_disconnect()

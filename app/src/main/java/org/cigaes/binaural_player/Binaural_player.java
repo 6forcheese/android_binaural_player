@@ -246,17 +246,24 @@ public class Binaural_player extends Service implements Handler.Callback
 
     void set_foreground()
     {
-	Notification notification = new Notification(R.drawable.icon,
-	    null, System.currentTimeMillis());
-	Intent intent = new Intent();
-	intent.addCategory(Intent.CATEGORY_DEFAULT);
-	intent.setAction(Intent.ACTION_VIEW);
-	intent.setType("application/x-sbagen-sequence");
-	PendingIntent pintent = PendingIntent.getActivity(this, 0, intent, 0);
-	notification.setLatestEventInfo(this, "Binaural player",
-	    null, pintent);
-	startForeground(1, notification);
-    }
+		Intent intent = new Intent(this, Binaural_player_GUI.class);
+		
+		PendingIntent pintent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Notification notification = new Notification.Builder(this)
+            .setContentTitle("Binaural player")
+            .setContentText("Playing")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentIntent(pintent)
+            .build();
+    
+        startForeground(1, notification);
+	}
 
     /*
      * Utility functions

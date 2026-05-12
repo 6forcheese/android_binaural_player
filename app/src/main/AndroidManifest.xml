@@ -3,7 +3,6 @@
 
   <application
       android:label="Binaural player"
-      android:icon="@drawable/icon">
 
     <service
         android:name=".Binaural_player"

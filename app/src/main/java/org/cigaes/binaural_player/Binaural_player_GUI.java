@@ -42,6 +42,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 public class Binaural_player_GUI extends TabActivity
     implements View.OnClickListener, CompoundButton.OnCheckedChangeListener,
@@ -59,14 +61,23 @@ public class Binaural_player_GUI extends TabActivity
     @Override
     public void onCreate(Bundle state)
     {
-	super.onCreate(state);
-	global_settings = getPreferences(Context.MODE_PRIVATE);
-	user_interface_create();
-	player_service_connect();
-	String dir = state == null ? null : state.getString("dir");
-	if(dir == null)
-	    dir = global_settings.getString("default-dir", "/sdcard/Download");
-	browser.chdir(dir);
+        super.onCreate(state);
+        global_settings = getPreferences(Context.MODE_PRIVATE);
+    
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                new String[] { Manifest.permission.READ_EXTERNAL_STORAGE },
+                1
+            );
+        }
+    
+        user_interface_create();
+        player_service_connect();
+        String dir = state == null ? null : state.getString("dir");
+        if(dir == null)
+            dir = global_settings.getString("default-dir", "/sdcard/Download");
+        browser.chdir(dir);
     }
 
     @Override

@@ -65,7 +65,7 @@ public class Binaural_player_GUI extends TabActivity
 	player_service_connect();
 	String dir = state == null ? null : state.getString("dir");
 	if(dir == null)
-	    dir = global_settings.getString("default-dir", "/sdcard");
+	    dir = global_settings.getString("default-dir", "/sdcard/Download");
 	browser.chdir(dir);
     }
 
